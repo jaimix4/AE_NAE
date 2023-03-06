@@ -75,11 +75,11 @@ class ae_nae_num:
         I = 0
         self.jac = (self.stel.G0 + self.iota*I)/self.Bmag**2
 
-        #dldvartheta
-        self.dldtheta = np.abs(self.modb/self.jac)
+        #dldvartheta !!!!!! I figure this out :))))
+        self.dldtheta = np.abs((self.modb*self.jac)/self.iotaN)
 
         # make lambda array
-        self.lam_arr = np.linspace(1/self.modb.max(),1/self.modb.min(),self.lam_res,endpoint=False)[1:]
+        self.lam_arr = np.linspace(1/self.modb.max(),1/self.modb.min(),self.lam_res)[1:-1]
 
         self.w_alpha = 'not computed yet'
         self.w_psi = 'not computed yet'
@@ -150,7 +150,7 @@ class ae_nae_num:
 
         Om = 1 # maybe this normalization is not doing well
 
-        Ghat = (tau_b*Om)/self.L
+        Ghat = tau_b/self.L
 
         #############################
         # DEFINE: calculate c0 and c1
@@ -173,6 +173,74 @@ class ae_nae_num:
         ae_total = simpson(ae_per_lam, self.lam_arr)
 
         return ae_per_lam, ae_total
+
+    def plot_ae_per_lam(self, dln_n_dpsi, dln_T_dpsi):
+
+        iotaN = self.iotaN
+
+        N = self.iota - self.iotaN
+
+        r = self.r
+
+        eta = self.eta
+
+        B0 = self.B0
+
+        Delta_psiA = self.Delta_psiA
+
+        lamb_arr = self.lam_arr
+
+        res = 5000
+
+        theta = np.linspace(-np.pi, np.pi, res)
+
+        phi = theta/(iotaN + N)
+
+        vartheta = theta - N*phi
+
+        magB = self.stel.B_mag(r=r, theta=theta, phi=phi)
+
+        vartheta_ae = 2*np.arcsin(np.sqrt((((1 - lamb_arr*(1 + r*eta))/(-r*eta*lamb_arr)))/2))
+
+        ae_per_lamb, ae_total = self.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)
+
+        ae_per_lamb_nor_total_ae =  ae_per_lamb/ae_total
+
+        norm = plt.Normalize()
+        colors = plt.cm.plasma(norm(ae_per_lamb_nor_total_ae))
+
+        cmap = plt.get_cmap('plasma', 200)
+        norm = mpl.colors.Normalize(vmin=np.min(ae_per_lamb_nor_total_ae), vmax=np.max(ae_per_lamb_nor_total_ae))
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])
+
+        fig,ax = plt.subplots(figsize=(11,5))
+
+        for idx, var_theta in enumerate(vartheta_ae):
+
+            B_vartheta = np.interp(var_theta, vartheta, magB)
+            ax.plot([-var_theta, var_theta], [B_vartheta, B_vartheta], c = colors[idx], linewidth = 0.9)
+
+        ax.set_title('Numerical, r = {} [m], $\eta$ = {}, B0 = {} [T], \n'.format(r, eta, B0) + r'$\Delta{\psi}_{A}$' + ' = {:.2f}'.format(Delta_psiA) + ', omT = {}, omn = {}'.format(dln_T_dpsi, dln_n_dpsi) + ', total AE = {:.2f}'.format(ae_total))
+        ax.plot(vartheta, magB, c = 'black')
+        fig.colorbar(sm, label = '$\hat{A}_{\lambda}/\hat{A}$', location = 'left', pad = 0.16)
+        ax.set_ylabel('$|B|$')
+        ax.set_xlabel(r'$\vartheta$')
+
+        ax2=ax.twinx()
+
+        ax2.plot(vartheta_ae, self.w_alpha, '-.r', linewidth = 0.9, alpha = 0.7)
+        ax2.plot(-vartheta_ae, self.w_alpha, '-.r', linewidth = 0.9, alpha = 0.7)
+        ax2.plot([-vartheta_ae[0] - 0.1, vartheta_ae[0]+ 0.1], [0,0], '--r', linewidth = 0.5)
+
+        ax2.set_ylabel(r'$\hat{\omega}_{\alpha}$', color = 'r')
+        ax2.spines['right'].set_color('r')
+        ax2.tick_params(colors='red', which='major')
+
+        plt.show()
+
+
+
 
 
 class ae_nae:
@@ -203,7 +271,7 @@ class ae_nae:
 
         self.lamb_max = lamb_max = 1/(1 + r*self.eta)
 
-        self.lam_arr = np.linspace(self.lamb_min, self.lamb_max, lam_res)
+        self.lam_arr = np.linspace(self.lamb_min, self.lamb_max, lam_res)[1:-1]
 
         self.ellip_n = ((-1*(1 - (1 + r*self.eta)*self.lam_arr))/((1 + r*self.eta)*self.lam_arr))
 
@@ -265,7 +333,7 @@ class ae_nae:
 
         den_dJnor_dpsi = r*(-1 + r*eta)* (B0 + B0*r*eta)**2 * np.sqrt(-1 * r * eta * lamb)
 
-        dJnor_dpsi = -num_dJnor_dpsi/den_dJnor_dpsi
+        dJnor_dpsi = -2*num_dJnor_dpsi/den_dJnor_dpsi
 
         #############################
         # DEFINE: the normalized w_alpha (ralf normalization for AE, taking into account jaime normalization)
@@ -299,13 +367,15 @@ class ae_nae:
 
         Om = 1 # maybe this normalization is not doing well
 
-        Ghat = (tau_nor*Om)/self.L
+        Ghat = tau_nor/self.L
 
         #############################
         # DEFINE: calculate c0 and c1
 
-        c0 = self.Delta_psiA * (dln_n_dpsi - 3/2 * dln_T_dpsi) / w_alpha_nor
-        c1 = 1.0 - self.Delta_psiA * dln_T_dpsi / w_alpha_nor
+        # here is where you apply the minus signs of the w_alpha_nor?
+
+        c0 = (self.Delta_psiA * (dln_n_dpsi - 3/2 * dln_T_dpsi)) / w_alpha_nor
+        c1 = 1.0 - (self.Delta_psiA * dln_T_dpsi) / w_alpha_nor
 
         condition1 = np.logical_and((c0>=0),(c1<=0))
         condition2 = np.logical_and((c0>=0),(c1>0))
@@ -371,7 +441,7 @@ class ae_nae:
             B_vartheta = np.interp(var_theta, vartheta, magB)
             ax.plot([-var_theta, var_theta], [B_vartheta, B_vartheta], c = colors[idx], linewidth = 0.9)
 
-        ax.set_title('r = {} [m], $\eta$ = {}, B0 = {} [T], \n'.format(r, eta, B0) + r'$\Delta{\psi}_{A}$' + ' = {:.2f}'.format(Delta_psiA) + ', omT = {}, omn = {}'.format(dln_T_dpsi, dln_n_dpsi) + ', total AE = {:.2f}'.format(ae_total))
+        ax.set_title('Analytical, r = {} [m], $\eta$ = {}, B0 = {} [T], \n'.format(r, eta, B0) + r'$\Delta{\psi}_{A}$' + ' = {:.2f}'.format(Delta_psiA) + ', omT = {}, omn = {}'.format(dln_T_dpsi, dln_n_dpsi) + ', total AE = {:.2f}'.format(ae_total))
         ax.plot(vartheta, magB, c = 'black')
         fig.colorbar(sm, label = '$\hat{A}_{\lambda}/\hat{A}$', location = 'left', pad = 0.16)
         ax.set_ylabel('$|B|$')

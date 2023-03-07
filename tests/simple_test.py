@@ -3,6 +3,7 @@ sys.path.append('/Users/jaimecaballero/Desktop/TUe_thesis/code/AEpy-main/AE_NAE_
 from ae_nae_first_order_routines import  *
 from qsc import Qsc
 import matplotlib.pyplot as plt
+import timeit
 
 # A configuration is defined with B0, etabar, field periods, Fourier components and eta bar
 
@@ -23,7 +24,7 @@ zs=[0, -0.045]  # zs -> the sine components of the axis vertical component
 stel = Qsc(rc=[1, 0.045], zs=[0, -0.045], nfp=nfp, etabar=eta, B0=B0)
 
 # to calculate things the lam_res needs to be provided, just that?
-lam_res = 1000
+lam_res = 5000
 
 # distance from the magnetic axis to be used
 r = 0.05
@@ -41,9 +42,15 @@ stel_ae = ae_nae(stel, r, lam_res, Delta_psiA)
 
 #declaring the object to compute ae using numerical form
 
-vartheta_res = 1000
+vartheta_res = 5000
 
 stel_ae_num = ae_nae_num(stel, r, lam_res, vartheta_res, Delta_psiA)
+
+print("The time taken for analytical: {:.6f} s, AE total = {:.10f}".format(timeit.timeit(lambda: stel_ae.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1], number = 1), stel_ae.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1]))
+print("The time taken for numerical:  {:.6f} s, AE total = {:.10f}".format(timeit.timeit(lambda: stel_ae_num.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1], number = 1), stel_ae_num.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1]))
+
+
+
 
 
 # 1st plot comparison of bouncing times and precession frequencies

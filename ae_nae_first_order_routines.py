@@ -1,14 +1,47 @@
 import sys
 import numpy as np
 from scipy.integrate import quad, dblquad, simpson
-from scipy.special import ellipk, ellipe, erf
+from scipy.special import ellipk, ellipe, erf, elliprj, elliprf
 from mpmath import ellippi
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 sys.path.append('/Users/jaimecaballero/Desktop/TUe_thesis/code/BAD-main/')
 from BAD import bounce_int
+from numba import jit
+#from elliptic_func import my_ellip_k_e,
 
 
+# functions to calculate elliptical integrals fasters
+#####################################################
+# this will go out of this main code, later
+
+def ellip_pi_carlson(n,m):
+
+    return  elliprf(0, 1-m, 1) + (n/3)*elliprj(0, 1 - m, 1, 1 - n)
+
+
+@jit(nopython=True)
+def my_ellip_k_e(k, tol=1e-10):
+    a = np.ones_like(k)
+    g = np.sqrt(1-k)
+    #this a is square, but it just ones here, so
+    # to be fast lets just leave like that
+    c = np.sqrt(np.abs(a - g**2))
+    n = 0
+    sum_th = 0.5*c**2
+    while True:
+        a, g = (a + g) / 2, np.sqrt(a * g)
+        c = (c**2)/(4*a) # old c with new a, perfect
+        n = n + 1
+        sum_th = sum_th + (2**(n - 1))*c**2
+
+        if (np.abs(a - g) < tol).all():
+            K = (np.pi/(2*a))
+
+            return K, K*(1 - sum_th)
+
+# warm up my function
+som = my_ellip_k_e(np.array([0.5]))
 
 class ae_nae_num:
 
@@ -81,53 +114,59 @@ class ae_nae_num:
         # make lambda array
         self.lam_arr = np.linspace(1/self.modb.max(),1/self.modb.min(),self.lam_res)[1:-1]
 
-        self.w_alpha = 'not computed yet'
-        self.w_psi = 'not computed yet'
-        self.tau_b = 'not computed yet'
+        self.w_alpha = None
+        self.w_psi = None
+        self.tau_b = None
 
 
 
 
     def tau_b_w_alpha_w_psi(self):
 
-        gtrapz_arr_alpha    = []
-        gtrapz_arr_psi      = []
-        boundary_list = []
+        if self.w_alpha is None or self.w_psi is None or self.tau_b is None:
 
-        w_alpha = np.empty_like(self.lam_arr)
-        w_psi = np.empty_like(self.lam_arr)
-        tau_b = np.empty_like(self.lam_arr)
+            gtrapz_arr_alpha    = []
+            gtrapz_arr_psi      = []
+            boundary_list = []
 
-        for idx, lam_val in enumerate(self.lam_arr):
+            w_alpha = np.empty_like(self.lam_arr)
+            w_psi = np.empty_like(self.lam_arr)
+            tau_b = np.empty_like(self.lam_arr)
 
-            f = 1 - lam_val * self.modb
-            tau_b_arr               = self.dldtheta
-            bounce_time, roots      = bounce_int.bounce_integral_wrapper(f,tau_b_arr,self.vartheta,return_roots=True)
-            alpha_arr               = self.dldtheta * ( lam_val * self.grad_alpha + 2 * ( 1/self.modb - lam_val ) * self.curv_alpha )
-            num_arr_alpha           = bounce_int.bounce_integral_wrapper(f,alpha_arr,self.vartheta)
-            psi_arr                 = self.dldtheta * ( lam_val * self.grad_psi   + 2 * ( 1/self.modb - lam_val ) * self.curv_psi )
-            num_arr_psi             = bounce_int.bounce_integral_wrapper(f,psi_arr,self.vartheta)
-            # check if roots cross boundary
-            cross_per_lam           = []
-            for idx2 in range(int(len(roots)/2)):
-                boundary_cross = roots[2*idx2] > roots[2*idx2+1]
-                cross_per_lam.append(boundary_cross)
-            # make into list of lists
-            boundary_list.append(np.asarray(cross_per_lam))
-            gtrapz_arr_psi.append(np.asarray(num_arr_psi)/np.asarray(bounce_time))
-            gtrapz_arr_alpha.append(np.asarray(num_arr_alpha)/np.asarray(bounce_time))
+            for idx, lam_val in enumerate(self.lam_arr):
 
-            w_alpha[idx] = num_arr_alpha[0]/bounce_time[0]
-            w_psi[idx] = num_arr_psi[0]/bounce_time[0]
+                f = 1 - lam_val * self.modb
+                tau_b_arr               = self.dldtheta
+                bounce_time, roots      = bounce_int.bounce_integral_wrapper(f,tau_b_arr,self.vartheta,return_roots=True)
+                alpha_arr               = self.dldtheta * ( lam_val * self.grad_alpha + 2 * ( 1/self.modb - lam_val ) * self.curv_alpha )
+                num_arr_alpha           = bounce_int.bounce_integral_wrapper(f,alpha_arr,self.vartheta)
+                psi_arr                 = self.dldtheta * ( lam_val * self.grad_psi   + 2 * ( 1/self.modb - lam_val ) * self.curv_psi )
+                num_arr_psi             = bounce_int.bounce_integral_wrapper(f,psi_arr,self.vartheta)
+                # check if roots cross boundary
+                cross_per_lam           = []
+                for idx2 in range(int(len(roots)/2)):
+                    boundary_cross = roots[2*idx2] > roots[2*idx2+1]
+                    cross_per_lam.append(boundary_cross)
+                # make into list of lists
+                boundary_list.append(np.asarray(cross_per_lam))
+                gtrapz_arr_psi.append(np.asarray(num_arr_psi)/np.asarray(bounce_time))
+                gtrapz_arr_alpha.append(np.asarray(num_arr_alpha)/np.asarray(bounce_time))
 
-            tau_b[idx] = bounce_time[0]
+                w_alpha[idx] = num_arr_alpha[0]/bounce_time[0]
+                w_psi[idx] = num_arr_psi[0]/bounce_time[0]
+
+                tau_b[idx] = bounce_time[0]
 
 
-        self.w_alpha = w_alpha
-        self.w_psi = w_psi
-        self.tau_b = tau_b
+            self.w_alpha = w_alpha
+            self.w_psi = w_psi
+            self.tau_b = tau_b
 
-        return tau_b, w_alpha, w_psi
+            return tau_b, w_alpha, w_psi
+
+        else:
+
+            return self.tau_b, self.w_alpha, self.w_psi
 
 
 
@@ -277,11 +316,13 @@ class ae_nae:
 
         self.ellip_m = (-1*(1 - (1 + r*self.eta)*self.lam_arr))/(2*r*self.eta*self.lam_arr)
 
-        self.tau_nor = 'not computed yet'
+        self.tau_nor = None
 
-        self.w_alpha_nor = 'not computed yet'
+        self.w_alpha_nor = None
 
         self.w_psi_nor = np.zeros_like(self.lam_arr)
+
+        self.ellip_Pi = None
 
         # geometry parameters analytical
 
@@ -289,17 +330,27 @@ class ae_nae:
 
     def bounce_time_nor_analytical(self):
 
-        a = np.abs(self.G0/self.iotaN)
+        if self.tau_nor is None:
 
-        num_tau_nor = 2 * np.sqrt(2) * a  * np.vectorize(ellippi, otypes=(float,))(self.ellip_n, self.ellip_m)
+            a = np.abs(self.G0/self.iotaN)
 
-        den_tau_nor = (self.B0 + self.B0*self.r*self.eta) * np.sqrt(-1 * self.r * self.eta * self.lam_arr)
+            if self.ellip_Pi is None:
 
-        tau_nor = num_tau_nor/den_tau_nor
+                self.ellip_Pi = ellip_pi_carlson(self.ellip_n, self.ellip_m)
 
-        self.tau_nor = tau_nor
+            num_tau_nor = 2 * np.sqrt(2) * a * self.ellip_Pi
 
-        return tau_nor
+            den_tau_nor = (self.B0 + self.B0*self.r*self.eta) * np.sqrt(-1 * self.r * self.eta * self.lam_arr)
+
+            tau_nor = num_tau_nor/den_tau_nor
+
+            self.tau_nor = tau_nor
+
+            return tau_nor
+
+        else:
+
+            return self.tau_nor
 
 
     def w_alpha_nor_analytical(self, lamb=None):
@@ -307,44 +358,62 @@ class ae_nae:
         #############################
         # DEFINE: dJnor/dpsi (normalization)
 
-        if lamb == None:
+        if self.w_alpha_nor is None:
 
-            lamb = self.lam_arr
+            if lamb == None:
 
-        r = self.r
+                lamb = self.lam_arr
 
-        eta = self.eta
+            r = self.r
 
-        ellip_m = self.ellip_m
+            eta = self.eta
 
-        ellip_n = self.ellip_n
+            ellip_m = self.ellip_m
 
-        a = np.abs(self.G0/self.iotaN)
+            ellip_n = self.ellip_n
 
-        B0 = self.B0
+            a = np.abs(self.G0/self.iotaN)
 
-        expr1 = 2 * eta * (1 + r*eta) * lamb * ellipe(ellip_m)
+            B0 = self.B0
 
-        expr2 = (-1 + (r*eta)**2) * eta * lamb * ellipk(ellip_m)
+            ellip_K, ellip_E = my_ellip_k_e(ellip_m)
 
-        expr3 = 2*r*(eta**2) * np.vectorize(ellippi, otypes=(float,))(ellip_n, ellip_m)
+            #expr1 = 2 * eta * (1 + r*eta) * lamb * ellipe(ellip_m)
 
-        num_dJnor_dpsi = a*np.sqrt(2)*(expr1 + expr2 - expr3)
+            #expr2 = (-1 + (r*eta)**2) * eta * lamb * ellipk(ellip_m)
 
-        den_dJnor_dpsi = r*(-1 + r*eta)* (B0 + B0*r*eta)**2 * np.sqrt(-1 * r * eta * lamb)
+            #expr3 = 2*r*(eta**2) * np.vectorize(ellippi, otypes=(float,))(ellip_n, ellip_m)
 
-        dJnor_dpsi = -2*num_dJnor_dpsi/den_dJnor_dpsi
+            expr1 = 2 * eta * (1 + r*eta) * lamb * ellip_E
 
-        #############################
-        # DEFINE: the normalized w_alpha (ralf normalization for AE, taking into account jaime normalization)
+            expr2 = (-1 + (r*eta)**2) * eta * lamb * ellip_K
 
-        # lets take out this 4, that I think is already outside in ralf things
-        #w_alpha_nor = (4*nabla_psiA*dJnor_dpsi)/tau_nor
-        w_alpha_nor = (self.Delta_psiA*dJnor_dpsi)/self.bounce_time_nor_analytical()
+            if self.ellip_Pi is None:
 
-        self.w_alpha_nor = w_alpha_nor
+                self.ellip_Pi = ellip_pi_carlson(self.ellip_n, self.ellip_m)
 
-        return w_alpha_nor
+            expr3 = 2*r*(eta**2) * self.ellip_Pi
+
+            num_dJnor_dpsi = a*np.sqrt(2)*(expr1 + expr2 - expr3)
+
+            den_dJnor_dpsi = r*(-1 + r*eta)* (B0 + B0*r*eta)**2 * np.sqrt(-1 * r * eta * lamb)
+
+            dJnor_dpsi = -2*num_dJnor_dpsi/den_dJnor_dpsi
+
+            #############################
+            # DEFINE: the normalized w_alpha (ralf normalization for AE, taking into account jaime normalization)
+
+            # lets take out this 4, that I think is already outside in ralf things
+            #w_alpha_nor = (4*nabla_psiA*dJnor_dpsi)/tau_nor
+            w_alpha_nor = (self.Delta_psiA*dJnor_dpsi)/self.bounce_time_nor_analytical()
+
+            self.w_alpha_nor = w_alpha_nor
+
+            return w_alpha_nor
+
+        else:
+
+            return self.w_alpha_nor
 
 
     def ae_integrand_per_lamb_total(self, dln_n_dpsi, dln_T_dpsi):
@@ -358,9 +427,12 @@ class ae_nae:
 
         # they come already in the arrays o
 
-        tau_nor = self.bounce_time_nor_analytical()
+        #tau_nor =
+
 
         w_alpha_nor = self.w_alpha_nor_analytical()
+
+        tau_nor = self.bounce_time_nor_analytical()
 
         #############################
         # DEFINE: G1/2nor (ralf variable taking into account jaime normalization of tau_b)

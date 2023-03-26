@@ -4,6 +4,7 @@ from scipy.integrate import simpson
 from scipy.special import ellipk, ellipe, erf, elliprj, elliprf
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from numba import jit
 from qsc import Qsc
 import timeit
@@ -40,7 +41,7 @@ def my_ellip_k_e(k, tol=1e-10):
 # warming up this function
 som = my_ellip_k_e(np.array([0.5]))
 
-def ae_nae(self, r, lam_res, Delta_psiA, dln_n_dpsi, dln_T_dpsi, plot = True):
+def ae_nae(self, r, lam_res, Delta_psiA, dln_n_dpsi, dln_T_dpsi, ax = None, ax2 = None, cax = None, plot = False):
 
     # fast function to calculate ae, everything is normalize according
     # to "Available energy of trapped electrons in Miller tokamak equilibria" Ralf
@@ -131,7 +132,15 @@ def ae_nae(self, r, lam_res, Delta_psiA, dln_n_dpsi, dln_T_dpsi, plot = True):
 
     ae_total = simpson(ae_per_lam, lam_arr)
 
-    if plot == True:
+    if ax is not None:
+
+        plot = False
+
+    if ax is None and plot == True:
+
+        fig,ax = plt.subplots(figsize=(11,5))
+
+    if ax is not None or plot == True:
 
         res = 5000
 
@@ -157,20 +166,48 @@ def ae_nae(self, r, lam_res, Delta_psiA, dln_n_dpsi, dln_T_dpsi, plot = True):
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         sm.set_array([])
 
-        fig,ax = plt.subplots(figsize=(11,5))
+        # mess I am doing
+        #fig,ax = plt.subplots(figsize=(11,5))
 
         for idx, var_theta in enumerate(vartheta_ae):
 
-            B_vartheta = np.interp(var_theta, vartheta, magB)
+            if vartheta[0] < vartheta[-1]:
+
+                B_vartheta = np.interp(var_theta, vartheta, magB)
+
+            else:
+
+                B_vartheta = np.interp(var_theta, np.flip(vartheta), magB)
+                
             ax.plot([-var_theta, var_theta], [B_vartheta, B_vartheta], c = colors[idx], linewidth = 0.9)
 
-        ax.set_title('Analytical, r = {} [m], $\eta$ = {}, B0 = {} [T], \n'.format(r, eta, B0) + r'$\Delta{\psi}_{A}$' + ' = {:.2f}'.format(Delta_psiA) + ', omT = {}, omn = {}'.format(dln_T_dpsi, dln_n_dpsi) + ', total AE = {:.8f}'.format(ae_total))
+        ax.set_title('Analytical, r = {} [m], $\eta$ = {:.3f}, B0 = {} [T], \n'.format(r, eta, B0) + r'$\Delta{\psi}_{A}$' + ' = {:.2f}'.format(Delta_psiA) + ', omT = {}, omn = {}'.format(dln_T_dpsi, dln_n_dpsi) + ', total AE = {:.8f}'.format(ae_total))
         ax.plot(vartheta, magB, c = 'black')
-        fig.colorbar(sm, label = '$\hat{A}_{\lambda}/\hat{A}$', location = 'left', pad = 0.16)
+        # mess I am doing
+
+        if plot == True:
+
+            fig.colorbar(sm, label = '$\hat{A}_{\lambda}/\hat{A}$', location = 'left', pad = 0.16)
+
+        else:
+
+            # divider = make_axes_locatable(ax)
+            # cax = divider.append_axes("left", size="5%", pad=0.05)
+            plt.colorbar(sm, cax=cax, label = '$\hat{A}_{\lambda}/\hat{A}$')
+
+            #plt.colorbar(sm, ax = ax, label = '$\hat{A}_{\lambda}/\hat{A}$', location = 'left', pad = 0.16)
+
+        #fig.colorbar(sm, label = '$\hat{A}_{\lambda}/\hat{A}$', location = 'left', pad = 0.16)
+        #ax.colorbar(sm, label = '$\hat{A}_{\lambda}/\hat{A}$', location = 'left', pad = 0.16)
         ax.set_ylabel('$|B|$')
         ax.set_xlabel(r'$\vartheta$')
 
-        ax2=ax.twinx()
+        if plot == True:
+
+            ax2=ax.twinx()
+
+        ax2.cla()
+        ax2.clear()
 
         ax2.plot(vartheta_ae, w_alpha_nor, '-.r', linewidth = 0.9, alpha = 0.7)
         ax2.plot(-vartheta_ae, w_alpha_nor, '-.r', linewidth = 0.9, alpha = 0.7)
@@ -180,13 +217,23 @@ def ae_nae(self, r, lam_res, Delta_psiA, dln_n_dpsi, dln_T_dpsi, plot = True):
         ax2.spines['right'].set_color('r')
         ax2.tick_params(colors='red', which='major')
 
+        # mess I am doing
+    if plot == True:
+
         plt.show()
 
 
+    # mess I am doing
     return tau_nor, w_alpha_nor, ae_per_lam, ae_total
+
+
+
+
+
+
 
 # trying the function
 
-stel = Qsc(rc=[1, 0.045], zs=[0, -0.045], nfp=3, etabar=-0.9, B0=1)
-ae_total = ae_nae(stel, r = 0.05, lam_res = 1000, Delta_psiA = 1, dln_n_dpsi = 5, dln_T_dpsi = 0)[3]
-print("The time taken for analytical: {:.6f} s, AE total = {:.10f}".format(timeit.timeit(lambda: ae_nae(stel, r = 0.05, lam_res = 1000, Delta_psiA = 1, dln_n_dpsi = 5, dln_T_dpsi = 0, plot = False), number = 1), ae_total))
+#stel = Qsc(rc=[1, 0.045], zs=[0, -0.045], nfp=3, etabar=-0.9, B0=1)
+#ae_total = ae_nae(stel, r = 0.05, lam_res = 5000, Delta_psiA = 1, dln_n_dpsi = 5, dln_T_dpsi = 0)[3]
+#print("The time taken for analytical: {:.6f} s, AE total = {:.10f}".format(timeit.timeit(lambda: ae_nae(stel, r = 0.05, lam_res = 5000, Delta_psiA = 1, dln_n_dpsi = 5, dln_T_dpsi = 0, plot = False), number = 1), ae_total))

@@ -7,33 +7,35 @@ import timeit
 
 # A configuration is defined with B0, etabar, field periods, Fourier components and eta bar
 
-B0 = 1          # [T] strength of the magnetic field on axis
+B0 = 3          # [T] strength of the magnetic field on axis
 
 eta = -0.9      # parameter
-
+eta = -1.551538720240993
 nfp = 3         # number of field periods
 
 rc=[1, 0.045]   # rc -> the cosine components of the axis radial component
 zs=[0, -0.045]  # zs -> the sine components of the axis vertical component
+rc=[1, 0.15864321608040202]   # rc -> the cosine components of the axis radial component
+zs=[0, -0.15864321608040202]  # zs -> the sine components of the axis vertical component
 
 # these quantities are provided in [m]
 
 # this is the configuration of r1 section 5.1 from
 # (not sure) Landreman, Sengupta, and Plunk, Journal of Plasma Physics 85, 905850103 (2019).
 
-stel = Qsc(rc=[1, 0.045], zs=[0, -0.045], nfp=nfp, etabar=eta, B0=B0)
+stel = Qsc(rc=rc, zs=zs, nfp=nfp, etabar=eta, B0=B0)
 
 # to calculate things the lam_res needs to be provided, just that?
 lam_res = 5000
 
 # distance from the magnetic axis to be used
-r = 0.05
+r = 0.005
 
 # normalization variable for AE
 Delta_psiA = 1
 
 # gradients for diamagnetic frequency
-dln_n_dpsi = 5
+dln_n_dpsi = -5
 dln_T_dpsi = 0
 
 #declaring the object to compute ae using anlaytical form
@@ -42,16 +44,18 @@ stel_ae = ae_nae(stel, r, lam_res, Delta_psiA)
 
 #declaring the object to compute ae using numerical form
 
-vartheta_res = 5000
+vartheta_res = 10000
 
 stel_ae_num = ae_nae_num(stel, r, lam_res, vartheta_res, Delta_psiA)
 
-print("The time taken for analytical: {:.6f} s, AE total = {:.10f}".format(timeit.timeit(lambda: stel_ae.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1], number = 1), stel_ae.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1]))
-print("The time taken for numerical:  {:.6f} s, AE total = {:.10f}".format(timeit.timeit(lambda: stel_ae_num.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1], number = 1), stel_ae_num.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1]))
 
+##### Test simple #######
 
+print("The time taken for analytical                        : {:.6f} s, AE total = {:.10f}".format(timeit.timeit(lambda: stel_ae.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1], number = 1), stel_ae.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1]))
+print("The time taken for numerical, analytical z           : {:.6f} s, AE total = {:.10f}".format(timeit.timeit(lambda: stel_ae_num.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1], number = 1), stel_ae_num.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1]))
+print("The time taken for numerical, numerical  z and lambda: {:.6f} s, AE total = {:.10f}".format(timeit.timeit(lambda: stel_ae_num.NUM_ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1], number = 1), stel_ae_num.NUM_ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1]))
 
-
+"""
 
 # 1st plot comparison of bouncing times and precession frequencies
 ##################################################################
@@ -115,7 +119,7 @@ for idx, dln_n_dpsi in enumerate(omn_arr):
     ax.plot(lamb_arr_anal, ae_per_lam_total, label = 'omn (anlaytical) = {:.2f}, AE = {:.4f}'.format(dln_n_dpsi, ae_total))
 
 
-    ae_per_lam_num, ae_total_num = stel_ae_num.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)
+    ae_per_lam_num, ae_total_num = stel_ae_num.NUM_ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)
     ae_per_lam_total_num = ae_per_lam_num/ae_total_num
 
     ax.plot(lamb_arr_num, ae_per_lam_total_num, '-.', label = 'omn (numerical) = {:.2f}, AE = {:.4f}'.format(dln_n_dpsi, ae_total_num))
@@ -176,7 +180,7 @@ sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
 sm.set_array([])
 
 
-fig,ax = plt.subplots(figsize=(11,7))
+fig,ax = plt.subplots(figsize=(11,5))
 
 
 for idx, var_theta in enumerate(vartheta_ae):
@@ -199,6 +203,7 @@ ax2.set_ylabel(r'$\hat{\omega}_{\alpha}$')
 
 plt.show()
 
+"""
 
 ###################################################################################
 

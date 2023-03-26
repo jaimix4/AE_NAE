@@ -1,6 +1,6 @@
 import sys
 import numpy as np
-from scipy.integrate import quad, dblquad, simpson
+from scipy.integrate import quad, quad_vec, dblquad, simpson
 from scipy.special import ellipk, ellipe, erf, elliprj, elliprf
 from mpmath import ellippi
 import matplotlib as mpl
@@ -42,6 +42,27 @@ def my_ellip_k_e(k, tol=1e-10):
 
 # warm up my function
 som = my_ellip_k_e(np.array([0.5]))
+
+# FUNCTIONS FOR CALCULATING AE NUMERICALLY
+###########################################
+
+def w_diamag(dlnndx,dlnTdx,z):
+
+    return ( dlnndx/z + dlnTdx * ( 1.0 - 3.0 / (2.0 * z) ) )
+
+
+def AE_per_lam_per_z(walpha,wpsi,wdia,tau_b,z):
+    r"""
+    The available energy per lambda per z.
+    BY RALF
+    """
+    geometry = ( wdia - walpha ) * walpha - wpsi**2 + np.sqrt( ( wdia - walpha )**2 + wpsi**2  ) * np.sqrt( walpha**2 + wpsi**2 )
+    envelope = np.exp(-z) * np.power(z,5/2)
+    jacobian = tau_b
+    val      = geometry * envelope * jacobian
+    return val/(4*np.sqrt(np.pi))
+
+###########################################
 
 class ae_nae_num:
 
@@ -118,6 +139,8 @@ class ae_nae_num:
         self.w_psi = None
         self.tau_b = None
 
+        self.ae_per_lam = None
+        self.ae_total = None
 
 
 
@@ -162,11 +185,65 @@ class ae_nae_num:
             self.w_psi = w_psi
             self.tau_b = tau_b
 
-            return tau_b, w_alpha, w_psi
+        return self.tau_b, self.w_alpha, self.w_psi
 
-        else:
 
-            return self.tau_b, self.w_alpha, self.w_psi
+
+    def NUM_ae_integrand_per_lamb_total(self,omn,omt,omnigenous = False, fast = True):
+        # loop over all lambda
+        # BY RALF
+        # Delta_x = self.Delta_x
+        # Delta_y = self.Delta_y
+        L_tot  = self.L #np.trapz(self.sqrtg*self.modb,self.theta)
+        tau_b, w_alpha, w_psi = self.tau_b_w_alpha_w_psi()
+
+        ae_at_lam_list = []
+
+        if omnigenous==False:
+
+            if fast == False:
+
+                for lam_idx, lam_val in enumerate(self.lam_arr):
+                    wpsi_at_lam     = w_psi[lam_idx]
+                    walpha_at_lam   = w_alpha[lam_idx]
+                    taub_at_lam     = tau_b[lam_idx]
+                    integrand       = lambda x: AE_per_lam_per_z(walpha_at_lam,wpsi_at_lam,w_diamag(omn,omt,x),taub_at_lam,x)
+                    ae_at_lam, _    = quad_vec(integrand,0.0,np.inf, epsrel=1e-6,epsabs=1e-20, limit=1000)
+                    ae_at_lam_list.append(ae_at_lam/L_tot)
+            else:
+
+                for lam_idx, lam_val in enumerate(self.lam_arr):
+                    wpsi_at_lam     = w_psi[lam_idx]
+                    walpha_at_lam   = w_alpha[lam_idx]
+                    taub_at_lam     = tau_b[lam_idx]
+                    integrand       = lambda x: np.sum(AE_per_lam_per_z(walpha_at_lam,wpsi_at_lam,w_diamag(omn,omt,x),taub_at_lam,x))
+                    ae_at_lam, _    = quad(integrand,0.0,np.inf, epsrel=1e-6,epsabs=1e-20, limit=1000)
+                    ae_at_lam_list.append(ae_at_lam/L_tot)
+
+        # if omnigenous==True:
+        #     for lam_idx, lam_val in enumerate(self.lam):
+        #         walpha_at_lam   = Delta_x*self.walpha[lam_idx]
+        #         taub_at_lam     = self.taub[lam_idx]
+        #         dlnndx          = -omn
+        #         dlnTdx          = -omt
+        #         c0 = Delta_x * (dlnndx - 3/2 * dlnTdx) / walpha_at_lam
+        #         c1 = 1.0 - Delta_x * dlnTdx / walpha_at_lam
+        #         ae_at_lam       = AE_per_lam(c0,c1,taub_at_lam,walpha_at_lam)
+        #         ae_at_lam_list.append(ae_at_lam/L_tot)
+
+        self.ae_per_lam = ae_at_lam_list
+
+        # now do integral over lam to find total AE
+        lam_arr   = np.asarray(self.lam_arr).flatten()
+        ae_per_lam_summed = np.zeros_like(lam_arr)
+        for lam_idx, lam_val in enumerate(lam_arr):
+            ae_per_lam_summed[lam_idx] = np.sum(self.ae_per_lam[lam_idx])
+        ae_tot = np.trapz(ae_per_lam_summed,lam_arr)
+        # if self.normalize=='ft-vol':
+        #     ae_tot = ae_tot/self.ft_vol
+        self.ae_total = ae_tot
+
+        return self.ae_per_lam, self.ae_total
 
 
 
@@ -207,11 +284,17 @@ class ae_nae_num:
         ans[condition2]  = (2 * c0[condition2] - 5 * c1[condition2]) * erf(np.sqrt(c0[condition2]/c1[condition2])) + 2 / (3 *np.sqrt(np.pi)) * ( 4 * c0[condition2] + 15 * c1[condition2] ) * np.sqrt(c0[condition2]/c1[condition2]) * np.exp( - c0[condition2]/c1[condition2] )
         ans[condition3]  = (2 * c0[condition3] - 5 * c1[condition3]) * (1 - erf(np.sqrt(c0[condition3]/c1[condition3]))) - 2 / (3 *np.sqrt(np.pi)) * ( 4 * c0[condition3] + 15 * c1[condition3] ) * np.sqrt(c0[condition3]/c1[condition3]) * np.exp( - c0[condition3]/c1[condition3] )
 
-        ae_per_lam = 3/16*ans*Ghat*w_alpha**2
+        ae_per_lam = (3/16)*ans*Ghat*w_alpha**2
 
         ae_total = simpson(ae_per_lam, self.lam_arr)
 
-        return ae_per_lam, ae_total
+        self.ae_per_lam = ae_per_lam
+        self.ae_total = ae_total
+
+        return self.ae_per_lam, self.ae_total
+
+
+
 
     def plot_ae_per_lam(self, dln_n_dpsi, dln_T_dpsi):
 
@@ -241,7 +324,7 @@ class ae_nae_num:
 
         vartheta_ae = 2*np.arcsin(np.sqrt((((1 - lamb_arr*(1 + r*eta))/(-r*eta*lamb_arr)))/2))
 
-        ae_per_lamb, ae_total = self.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)
+        ae_per_lamb, ae_total = self.NUM_ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)
 
         ae_per_lamb_nor_total_ae =  ae_per_lamb/ae_total
 
@@ -281,7 +364,6 @@ class ae_nae_num:
 
 
 
-
 class ae_nae:
 
     def __init__(self, stel, r, lam_res, Delta_psiA):
@@ -306,9 +388,9 @@ class ae_nae:
 
         self.L = self.stel.axis_length
 
-        self.lamb_min = lamb_min = 1/(1 - r*self.eta)
+        self.lamb_min  = 1/(1 - r*self.eta)
 
-        self.lamb_max = lamb_max = 1/(1 + r*self.eta)
+        self.lamb_max  = 1/(1 + r*self.eta)
 
         self.lam_arr = np.linspace(self.lamb_min, self.lamb_max, lam_res)[1:-1]
 
@@ -322,9 +404,11 @@ class ae_nae:
 
         self.w_psi_nor = np.zeros_like(self.lam_arr)
 
-        self.ellip_Pi = None
+        self.ellip_Pi = ellip_pi_carlson(self.ellip_n, self.ellip_m)
 
-        # geometry parameters analytical
+        self.ae_per_lam = None
+
+        self.ae_total = None
 
 
 
@@ -346,11 +430,8 @@ class ae_nae:
 
             self.tau_nor = tau_nor
 
-            return tau_nor
 
-        else:
-
-            return self.tau_nor
+        return self.tau_nor
 
 
     def w_alpha_nor_analytical(self, lamb=None):
@@ -409,11 +490,8 @@ class ae_nae:
 
             self.w_alpha_nor = w_alpha_nor
 
-            return w_alpha_nor
 
-        else:
-
-            return self.w_alpha_nor
+        return self.w_alpha_nor
 
 
     def ae_integrand_per_lamb_total(self, dln_n_dpsi, dln_T_dpsi):
@@ -429,41 +507,42 @@ class ae_nae:
 
         #tau_nor =
 
+        if self.ae_per_lam is None or self.ae_total is None:
 
-        w_alpha_nor = self.w_alpha_nor_analytical()
+            w_alpha_nor = self.w_alpha_nor_analytical()
 
-        tau_nor = self.bounce_time_nor_analytical()
+            tau_nor = self.bounce_time_nor_analytical()
 
-        #############################
-        # DEFINE: G1/2nor (ralf variable taking into account jaime normalization of tau_b)
+            #############################
+            # DEFINE: G1/2nor (ralf variable taking into account jaime normalization of tau_b)
 
-        Om = 1 # maybe this normalization is not doing well
+            Om = 1 # maybe this normalization is not doing well
 
-        Ghat = tau_nor/self.L
+            Ghat = tau_nor/self.L
 
-        #############################
-        # DEFINE: calculate c0 and c1
+            #############################
+            # DEFINE: calculate c0 and c1
 
-        # here is where you apply the minus signs of the w_alpha_nor?
+            # here is where you apply the minus signs of the w_alpha_nor?
 
-        c0 = (self.Delta_psiA * (dln_n_dpsi - 3/2 * dln_T_dpsi)) / w_alpha_nor
-        c1 = 1.0 - (self.Delta_psiA * dln_T_dpsi) / w_alpha_nor
+            c0 = (self.Delta_psiA * (dln_n_dpsi - 3/2 * dln_T_dpsi)) / w_alpha_nor
+            c1 = 1.0 - (self.Delta_psiA * dln_T_dpsi) / w_alpha_nor
 
-        condition1 = np.logical_and((c0>=0),(c1<=0))
-        condition2 = np.logical_and((c0>=0),(c1>0))
-        condition3 = np.logical_and((c0<0),(c1<0))
+            condition1 = np.logical_and((c0>=0),(c1<=0))
+            condition2 = np.logical_and((c0>=0),(c1>0))
+            condition3 = np.logical_and((c0<0),(c1<0))
 
-        ans = np.zeros(len(c1))
+            ans = np.zeros(len(c1))
 
-        ans[condition1]  = (2 * c0[condition1] - 5 * c1[condition1])
-        ans[condition2]  = (2 * c0[condition2] - 5 * c1[condition2]) * erf(np.sqrt(c0[condition2]/c1[condition2])) + 2 / (3 *np.sqrt(np.pi)) * ( 4 * c0[condition2] + 15 * c1[condition2] ) * np.sqrt(c0[condition2]/c1[condition2]) * np.exp( - c0[condition2]/c1[condition2] )
-        ans[condition3]  = (2 * c0[condition3] - 5 * c1[condition3]) * (1 - erf(np.sqrt(c0[condition3]/c1[condition3]))) - 2 / (3 *np.sqrt(np.pi)) * ( 4 * c0[condition3] + 15 * c1[condition3] ) * np.sqrt(c0[condition3]/c1[condition3]) * np.exp( - c0[condition3]/c1[condition3] )
+            ans[condition1]  = (2 * c0[condition1] - 5 * c1[condition1])
+            ans[condition2]  = (2 * c0[condition2] - 5 * c1[condition2]) * erf(np.sqrt(c0[condition2]/c1[condition2])) + 2 / (3 *np.sqrt(np.pi)) * ( 4 * c0[condition2] + 15 * c1[condition2] ) * np.sqrt(c0[condition2]/c1[condition2]) * np.exp( - c0[condition2]/c1[condition2] )
+            ans[condition3]  = (2 * c0[condition3] - 5 * c1[condition3]) * (1 - erf(np.sqrt(c0[condition3]/c1[condition3]))) - 2 / (3 *np.sqrt(np.pi)) * ( 4 * c0[condition3] + 15 * c1[condition3] ) * np.sqrt(c0[condition3]/c1[condition3]) * np.exp( - c0[condition3]/c1[condition3] )
 
-        ae_per_lam = 3/16*ans*Ghat*w_alpha_nor**2
+            self.ae_per_lam = (3/16)*ans*Ghat*w_alpha_nor**2
 
-        ae_total = simpson(ae_per_lam, self.lam_arr)
+            self.ae_total = simpson(self.ae_per_lam, self.lam_arr)
 
-        return ae_per_lam, ae_total
+        return self.ae_per_lam, self.ae_total
 
 
     def plot_ae_per_lam(self, dln_n_dpsi, dln_T_dpsi):
@@ -484,6 +563,8 @@ class ae_nae:
 
         res = 5000
 
+        vartheta_ae = 2*np.arcsin(np.sqrt((((1 - lamb_arr*(1 + r*eta))/(-r*eta*lamb_arr)))/2))
+
         theta = np.linspace(-np.pi, np.pi, res)
 
         phi = theta/(iotaN + N)
@@ -491,8 +572,6 @@ class ae_nae:
         vartheta = theta - N*phi
 
         magB = self.stel.B_mag(r=r, theta=theta, phi=phi)
-
-        vartheta_ae = 2*np.arcsin(np.sqrt((((1 - lamb_arr*(1 + r*eta))/(-r*eta*lamb_arr)))/2))
 
         ae_per_lamb, ae_total = self.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)
 
@@ -510,7 +589,14 @@ class ae_nae:
 
         for idx, var_theta in enumerate(vartheta_ae):
 
-            B_vartheta = np.interp(var_theta, vartheta, magB)
+            if vartheta[0] < vartheta[-1]:
+
+                B_vartheta = np.interp(var_theta, vartheta, magB)
+
+            else:
+
+                B_vartheta = np.interp(var_theta, np.flip(vartheta), magB)
+
             ax.plot([-var_theta, var_theta], [B_vartheta, B_vartheta], c = colors[idx], linewidth = 0.9)
 
         ax.set_title('Analytical, r = {} [m], $\eta$ = {}, B0 = {} [T], \n'.format(r, eta, B0) + r'$\Delta{\psi}_{A}$' + ' = {:.2f}'.format(Delta_psiA) + ', omT = {}, omn = {}'.format(dln_T_dpsi, dln_n_dpsi) + ', total AE = {:.2f}'.format(ae_total))

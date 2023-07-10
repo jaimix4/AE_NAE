@@ -199,6 +199,6 @@ def update_linechart(i):
 
       # bounce well plot
 
-num_frames = len(eta_arr)
+num_frames = 5 #len(eta_arr)
 anim = animation.FuncAnimation(fig, update_linechart, frames = num_frames, interval = 150)
 anim.save('animate_well{}.gif'.format(dln_n_dpsi))

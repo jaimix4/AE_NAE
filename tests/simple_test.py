@@ -7,7 +7,7 @@ import timeit
 
 # A configuration is defined with B0, etabar, field periods, Fourier components and eta bar
 
-B0 = 3          # [T] strength of the magnetic field on axis
+B0 = 1          # [T] strength of the magnetic field on axis
 
 eta = -0.9      # parameter
 eta = -1.551538720240993
@@ -17,6 +17,60 @@ rc=[1, 0.045]   # rc -> the cosine components of the axis radial component
 zs=[0, -0.045]  # zs -> the sine components of the axis vertical component
 rc=[1, 0.15864321608040202]   # rc -> the cosine components of the axis radial component
 zs=[0, -0.15864321608040202]  # zs -> the sine components of the axis vertical component
+
+
+#
+# minimum of ae_total_arr: 0.00032931733186449875
+# a for minimum of ae_total_arr: 0.02526315789473684
+# b for minimum of ae_total_arr: -0.02210526315789474
+# eta for minimum of ae_total_arr: -0.13021923885735884
+
+# a for minimum of ae_total_arr: 0.01
+# b for minimum of ae_total_arr: -0.01714285714285714
+# eta for minimum of ae_total_arr: -0.29765947102889734
+
+
+# 0.004350888535800758
+# 0.1757142857142857
+# -0.008571428571428563
+# -0.3217907065743966
+
+
+# 0.0020603768217659635
+# 0.1757142857142857
+# -0.008571428571428563
+# -0.3217907065743966
+
+#-1.5373688813367854
+
+# minimum of ae_total_arr: 0.0003918763557246035
+# a for minimum of ae_total_arr: 0.11357142857142856
+# b for minimum of ae_total_arr: -0.06
+# eta for minimum of ae_total_arr: -0.29765947102889734
+
+eta = -0.29765947102889734
+rc = [1, 0.11357142857142856, -0.06]
+zs = [0, 0.11357142857142856, -0.06]
+
+
+# minimum of ae_total_arr: 7.90990498818863e-05
+# a for minimum of ae_total_arr: 0.105065
+# b for minimum of ae_total_arr: -0.0552
+# eta for minimum of ae_total_arr: -0.030262679452118205
+
+
+# minimum of ae_total_arr: 5.101330701301146e-06
+# a for minimum of ae_total_arr: 0.017094333333333333
+# b for minimum of ae_total_arr: -0.0316
+# eta for minimum of ae_total_arr: -0.005168700094514442
+
+eta = -0.030262679452118205
+rc = [1, 0.105065, -0.0552]
+zs = [0, 0.105065, -0.0552]
+
+eta = -0.9
+rc = [1, 0.045]
+zs = [0, 0.045]
 
 # these quantities are provided in [m]
 
@@ -29,7 +83,7 @@ stel = Qsc(rc=rc, zs=zs, nfp=nfp, etabar=eta, B0=B0)
 lam_res = 5000
 
 # distance from the magnetic axis to be used
-r = 0.005
+r = 0.0005
 
 # normalization variable for AE
 Delta_psiA = 1
@@ -44,16 +98,41 @@ stel_ae = ae_nae(stel, r, lam_res, Delta_psiA)
 
 #declaring the object to compute ae using numerical form
 
-vartheta_res = 10000
+# vartheta_res = 10000
 
-stel_ae_num = ae_nae_num(stel, r, lam_res, vartheta_res, Delta_psiA)
+# stel_ae_num = ae_nae_num(stel, r, lam_res, vartheta_res, Delta_psiA)
 
+# array with logaritmic spacing of r
+
+
+r_arr = np.geomspace(1e-10, 0.1, 100)
+ae_total_arr = np.empty_like(r_arr)
+
+for idx, r in enumerate(r_arr):
+    
+    stel_ae = ae_nae(stel, r, lam_res, Delta_psiA)
+    ae_total_arr[idx] = stel_ae.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1]
+    #print("r = {}".format(r))
+    #print("The time taken for analytical : {:.6f} s, AE total = {:.10f}".format(timeit.timeit(lambda: stel_ae.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1], number = 1), ae_total_arr[idx]))
+    #print("\n")
+# fig with specific size
+fig = plt.figure(figsize=(7, 5))
+plt.plot(r_arr, ae_total_arr, 'r*-', markersize = 1.5)
+plt.xscale('log')
+plt.yscale('log')
+plt.xlabel('r', fontsize = 14)
+plt.ylabel('AE total', fontsize = 14)
+plt.grid(alpha = 0.5)
+plt.title('AE total vs r', fontsize = 16)
+plt.show()
 
 ##### Test simple #######
-
-print("The time taken for analytical                        : {:.6f} s, AE total = {:.10f}".format(timeit.timeit(lambda: stel_ae.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1], number = 1), stel_ae.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1]))
-print("The time taken for numerical, analytical z           : {:.6f} s, AE total = {:.10f}".format(timeit.timeit(lambda: stel_ae_num.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1], number = 1), stel_ae_num.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1]))
-print("The time taken for numerical, numerical  z and lambda: {:.6f} s, AE total = {:.10f}".format(timeit.timeit(lambda: stel_ae_num.NUM_ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1], number = 1), stel_ae_num.NUM_ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1]))
+# print("\n")
+# print("r = {}".format(r))
+# print("The time taken for analytical                        : {:.6f} s, AE total = {:.10f}".format(timeit.timeit(lambda: stel_ae.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1], number = 1), stel_ae.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1]))
+# print("\n")
+#print("The time taken for numerical, analytical z           : {:.6f} s, AE total = {:.10f}".format(timeit.timeit(lambda: stel_ae_num.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1], number = 1), stel_ae_num.ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1]))
+#print("The time taken for numerical, numerical  z and lambda: {:.6f} s, AE total = {:.10f}".format(timeit.timeit(lambda: stel_ae_num.NUM_ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1], number = 1), stel_ae_num.NUM_ae_integrand_per_lamb_total(dln_n_dpsi, dln_T_dpsi)[1]))
 
 """
 
@@ -208,8 +287,8 @@ plt.show()
 ###################################################################################
 
 
-stel_ae_num.plot_ae_per_lam(dln_n_dpsi, dln_T_dpsi)
+#stel_ae_num.plot_ae_per_lam(dln_n_dpsi, dln_T_dpsi)
 
 
 
-stel_ae.plot_ae_per_lam(dln_n_dpsi, dln_T_dpsi)
+#stel_ae.plot_ae_per_lam(dln_n_dpsi, dln_T_dpsi)

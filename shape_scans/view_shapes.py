@@ -4,7 +4,9 @@ from qsc import Qsc
 from matplotlib.widgets import Slider, Button
 # import matplotlib as mpl
 # mpl.rcParams['text.usetex'] = True
-
+# from   matplotlib        import rc
+# rc('font',**{'family':'serif','serif':['Computer Modern Serif'], 'size': 12})
+# rc('text', usetex=True)
 #### defining curve
 
 Nfp = 4
@@ -115,36 +117,41 @@ lim_z_up = 1
 lim_z_do = -lim_z_up
 
 #t = ax.plot(x, y, z, label='parametric curve')
-ax.plot(np.zeros(3), np.zeros(3), np.linspace(-2, 2, 3), label = "axis of torus", linewidth = 2.0, linestyle='dashed')
+ax.plot(np.zeros(3), np.zeros(3), np.linspace(-1.2, 1.2, 3), label = "axis of torus", linewidth = 2.0, linestyle='dashed')
 
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-ax.set_zlabel('z')
+ax.set_xlabel('x', size = 16)
+ax.set_ylabel('y', size = 16)
+ax.set_zlabel('z', size = 16)
 
-ax.set_title('Rc = [1, {:.4f}], Zs = [0, {:.4f}],    Nfp = {}'.format(0.005, 0.005, Nfp), y=1.0, pad=-7)
+ax.set_title('Rc = [1, {:.3f}], Zs = [0, {:.3f}],    Nfp = {}'.format(0.005, 0.005, Nfp), y=0.95, pad=-7, fontsize = 18, color = 'r')
 
 ax.set_zlim(-1.3, 1.3)
 ax.set_xlim(-1.3, 1.3)
 ax.set_ylim(-1.3, 1.3)
 
-#ax.set_aspect('auto', adjustable='box')
 
-ax.legend(loc = 3)
+ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.0), ncol=3, fancybox=True, shadow=True, fontsize = 18)
+ax.set_axis_off()
 plt.tight_layout()
 
-aF = plt.axes([0.25, 0.0, 0.65, 0.03])
 
-aF = Slider(aF, 'a (axis shape)', 0.001, 0.3, 0.001, valstep = 0.005)
+aF = plt.axes([0.25, 0.03, 0.65, 0.03])
+bF = plt.axes([0.25, 0.00, 0.65, 0.03])
+
+aF = Slider(aF, 'a (axis shape: a)', -0.3, 0.3, 0.0, valstep = 0.0005)
+# create slider for bF
+bF = Slider(bF, 'b (axis shape: b)', -0.06, 0.06, 0.0, valstep = 0.0005)
 
 def update(val):
 
     aF_use = aF.val
+    bF_use = bF.val
 
     ax.clear()
 
-    Rc = np.array([aF_use , 0])
+    Rc = np.array([aF_use , bF_use])
 
-    Zs = np.array([aF_use , 0])
+    Zs = np.array([aF_use , bF_use])
 
     n = 100
 
@@ -177,19 +184,21 @@ def update(val):
     l = ax.plot(x, y, z, color = 'k', linewidth = 2.0, label = 'magnetic axis')
 
 
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
+    ax.set_xlabel('x', size = 16)
+    ax.set_ylabel('y', size = 16)
+    ax.set_zlabel('z', size = 16)
 
-    ax.set_title('Rc = [1, {:.4f}], Zs = [0, {:.4f}], Nfp = {}'.format(aF_use, aF_use, Nfp), y=1.0, pad=-7)
+    ax.set_title('Rc = [1, {:.3f}, {:.3f}], Zs = [0, {:.3f}, {:.3f}], Nfp = {}'.format(aF_use, bF_use, aF_use, bF_use, Nfp), y=0.95, pad=-2, fontsize = 18, color = 'r')
 
     ax.set_zlim(-1.3, 1.3)
     ax.set_xlim(-1.3, 1.3)
     ax.set_ylim(-1.3, 1.3)
 
-    ax.plot(np.zeros(3), np.zeros(3), np.linspace(-2, 2, 3), label = "axis of torus", linewidth = 2.0, linestyle = 'dashed')
+    ax.plot(np.zeros(3), np.zeros(3), np.linspace(-1.2, 1.2, 3), label = "axis of torus", linewidth = 2.0, linestyle = 'dashed')
 
-    ax.legend(loc = 3)
+    ax.legend(loc='lower center', bbox_to_anchor=(0.5, 1.0), ncol=3, fancybox=True, shadow=True, fontsize = 18)
+
+    ax.set_axis_off()
 
     plt.tight_layout()
 
@@ -197,6 +206,8 @@ def update(val):
 
 
 aF.on_changed(update)
+bF.on_changed(update)
+
 
 
 plt.show()

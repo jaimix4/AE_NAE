@@ -27,6 +27,32 @@ def ellip_pi_carlson(n,m):
 
     return  elliprf(0, 1-m, 1) + (n/3)*elliprj(0, 1 - m, 1, 1 - n)
 
+
+def ellip_pi_carlson(n, m):
+    """
+    Return the complete elliptic integral of the third kind.
+
+    Parameters
+    ----------
+    n : float
+        Real part of the parameter.
+    m : float
+        Real part of the parameter.
+
+    Returns
+    -------
+    float
+        The complete elliptic integral of the third kind.
+
+    Examples
+    --------
+    >>> ellip_pi_carlson(0.25, 0.5)
+    2.1676193607665555
+
+    """
+    return elliprf(0, 1 - m, 1) + (n / 3) * elliprj(0, 1 - m, 1, 1 - n)
+
+
 # uses scipy
 def scipy_carlson_elliptic_fun(n,m):
 
@@ -73,7 +99,6 @@ def RF(x,y,z):
         # for idx in range(N):
         #
         #     epslon[idx] = np.maximum( np.abs(xndev[idx]), np.maximum( np.abs(yndev[idx]), np.abs(zndev[idx]) ) )
-
         epslon = np.maximum( np.abs(xndev), np.maximum( np.abs(yndev), np.abs(zndev) ) )
 
         #if (epslon < errtol).all():

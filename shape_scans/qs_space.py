@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from qsc import Qsc
 sys.path.append('/Users/jaimecaballero/Desktop/TUe_thesis/code/AEpy-main/AE_NAE_py/')
+from ae_nor_func_pyqsc import ae_nor_nae
 from ae_func_pyqsc import ae_nae
 from scipy.optimize import minimize
 # import matplotlib as mpl
@@ -29,13 +30,17 @@ lam_res = 5000
 
 Delta_psiA = 1
 
-omn = -5
+Delta_r = 1
+a_r = 1
+
+omn = -2
 omT = 0
 
 r = 0.005
 
-a_arr = np.linspace(0.01, 0.3, 200)
+a_arr = np.linspace(0.01, 0.3, 500)
 ae_total_arr = np.empty_like(a_arr)
+ae_nor_total_arr = np.empty_like(a_arr)
 eta_arr = np.empty_like(a_arr)
 alpha_tilde_arr = np.empty_like(a_arr)
 
@@ -45,10 +50,16 @@ eta_start = [-0.7]
 
 # simple  minimazation, better for just optimizing eta
 
-
 def ae_total_function_eta(x):
 
-    return ae_nae(Qsc(rc=rc, zs=zs, nfp=nfp, etabar=x[0], B0=B0), r, lam_res, Delta_psiA, omn, omT, plot = False)[-1]
+    #return ae_nae(Qsc(rc=rc, zs=zs, nfp=nfp, etabar=x[0], B0=B0), r, lam_res, Delta_psiA, omn, omT, plot = False)[-1]
+    return ae_nor_nae(Qsc(rc=rc, zs=zs, nfp=nfp, etabar=x[0], B0=B0), r, lam_res, Delta_r, a_r, omn, omT, plot = False)[-2]
+
+
+def ae_nor_total_function_eta(x):
+
+    #return ae_nae(Qsc(rc=rc, zs=zs, nfp=nfp, etabar=x[0], B0=B0), r, lam_res, Delta_psiA, omn, omT, plot = False)[-1]
+    return ae_nor_nae(Qsc(rc=rc, zs=zs, nfp=nfp, etabar=x[0], B0=B0), r, lam_res, Delta_r, a_r, omn, omT, plot = False)[-1]
 
 
 for idx, a in enumerate(a_arr):
@@ -64,6 +75,7 @@ for idx, a in enumerate(a_arr):
     eta_arr[idx] = solution[0]
 
     ae_total_arr[idx] = ae_total_function_eta(solution)
+    ae_nor_total_arr[idx] = ae_nor_total_function_eta(solution)
 
     stel = Qsc(rc=rc, zs=zs, nfp=nfp, etabar=eta_arr[idx], B0=B0)
 
@@ -73,7 +85,9 @@ for idx, a in enumerate(a_arr):
 
 
 fig,ax = plt.subplots(figsize=(11,6))
-ax.plot(a_arr, ae_total_arr, '-*r', zorder = 3, linewidth = 2, markersize = 0.2)
+ax.plot(a_arr, ae_total_arr, '-*r', zorder = 3, linewidth = 2, markersize = 0.2, label = r'$\hat{A}$')
+ax.plot(a_arr, ae_nor_total_arr, '--r', zorder = 3, linewidth = 2, markersize = 0.2, label = r'$\hat{A}/E_t$')
+ax.legend(loc = 'upper right', fontsize = 20)
 
 ax.set_yscale('log')
 ax.grid(alpha = 0.4)
@@ -133,7 +147,7 @@ for idx, alpha_tile in enumerate(alpha_tilde_arr):
 
 
 fig.tight_layout()
-fig.savefig('ae_scan_shape_axis_a_{}_{}.png'.format(r, nfp), format='png', dpi=300, bbox_inches='tight')
+fig.savefig('nor_ae_scan_shape_axis_a_{}_{}_{}.png'.format(r, nfp, omn), format='png', dpi=300, bbox_inches='tight')
 plt.show()
 
 idx_opt = np.argmin(ae_total_arr)

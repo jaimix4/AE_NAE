@@ -454,8 +454,8 @@ def ae_computations(idx):
     alpha = 1.0
     stel.r = r 
     try:
-        NAE_AE = ae.AE_pyQSC(stel_obj = stel, r=stel.r, alpha=alpha, N_turns=3, nphi=nphi,
-                                lam_res=lam_res,get_drifts=True,normalize='ft-vol',AE_lengthscale='None')
+        NAE_AE = ae.AE_pyQSC(stel_obj = stel, r=stel.r, alpha=alpha, N_turns=3, nphi=1e5+1,
+                                lam_res=10*lam_res,get_drifts=True,normalize='ft-vol',AE_lengthscale='None')
         NAE_AE.calc_AE(omn=stel.spsi*omn,omt=stel.spsi*omt,omnigenous=omnigenous)
         NAE_AE.plot_AE_per_lam(save=True)
         ae_second = NAE_AE.ae_tot
@@ -1148,31 +1148,35 @@ if __name__ == "__main__":
 
     ae_computations(idx)
 
+    print('this: ', nfp)
+
+    print(ae_second_arr[idx])
+
     stel = Qsc(rc=[1, a_mesh[idx], b_mesh[idx]], zs=[0.0, a_z_arr[idx], b_z_arr[idx]], \
-        nfp=nfp, etabar=eta_arr[idx]+0.3, B0=B0, order = "r1") #, B2c = B2c_arr[idx], nphi=nphi)
+        nfp=nfp, etabar=eta_arr[idx], B0=B0, order = "r2", B2c = B2c_arr[idx], nphi=nphi)
     stel.spsi = 1
     stel.calculate()
     #print(stel.r_singularity)
     print(stel.iotaN)
-    plot_boundary_jaime(stel, fieldlines=False, r = 0.015)
-    stel.plot_boundary(r = r, fieldlines=True)#, filename='2nd_ae_config_nfp_{}_r_{}_omn_{}_omt_{}_fieldlines.png'.format(nfp, r, omn, omt))
+    # plot_boundary_jaime(stel, fieldlines=False, r = 0.1)
+    stel.plot_boundary(r = 0.02, fieldlines=True)#, filename='2nd_ae_config_nfp_{}_r_{}_omn_{}_omt_{}_fieldlines.png'.format(nfp, r, omn, omt))
 
-    stel = Qsc(rc=[1, a_mesh[idx], b_mesh[idx]], zs=[0.0, a_z_arr[idx], b_z_arr[idx]], \
-        nfp=nfp, etabar=eta_arr[idx]-0.3, B0=B0, order = "r1") #, B2c = B2c_arr[idx], nphi=nphi)
-    stel.spsi = 1
-    stel.calculate()
-    #print(stel.r_singularity)
-    print(stel.iotaN)
-    plot_boundary_jaime(stel, fieldlines=False, r = 0.015)
-    stel.plot_boundary(r = r, fieldlines=True)#, filename='2nd_ae_config_nfp_{}_r_{}_omn_{}_omt_{}_fieldlines.png'.format(nfp, r, omn, omt))
+    # stel = Qsc(rc=[1, a_mesh[idx], b_mesh[idx]], zs=[0.0, a_z_arr[idx], b_z_arr[idx]], \
+    #     nfp=nfp, etabar=eta_arr[idx]-0.3, B0=B0, order = "r1") #, B2c = B2c_arr[idx], nphi=nphi)
+    # stel.spsi = 1
+    # stel.calculate()
+    # #print(stel.r_singularity)
+    # print(stel.iotaN)
+    # plot_boundary_jaime(stel, fieldlines=False, r = 0.015)
+    # stel.plot_boundary(r = r, fieldlines=True)#, filename='2nd_ae_config_nfp_{}_r_{}_omn_{}_omt_{}_fieldlines.png'.format(nfp, r, omn, omt))
 
-    stel = Qsc(rc=[1, a_mesh[idx], b_mesh[idx]], zs=[0.0, a_z_arr[idx], b_z_arr[idx]], \
-        nfp=nfp, etabar=eta_arr[idx], B0=B0, order = "r2", B2c = B2c_arr[idx]*-1, nphi=nphi)
-    stel.spsi = 1
-    stel.calculate()
-    print(stel.r_singularity)
-    print(stel.iotaN)
-    plot_boundary_jaime(stel, fieldlines=False, r = 0.015)
-    stel.plot_boundary(r = r, fieldlines=True)#, filename='2nd_ae_config_nfp_{}_r_{}_omn_{}_omt_{}_fieldlines.png'.format(nfp, r, omn, omt))
+    # stel = Qsc(rc=[1, a_mesh[idx], b_mesh[idx]], zs=[0.0, a_z_arr[idx], b_z_arr[idx]], \
+    #     nfp=nfp, etabar=eta_arr[idx], B0=B0, order = "r2", B2c = B2c_arr[idx]*-1, nphi=nphi)
+    # stel.spsi = 1
+    # stel.calculate()
+    # print(stel.r_singularity)
+    # print(stel.iotaN)
+    # plot_boundary_jaime(stel, fieldlines=False, r = 0.015)
+    # stel.plot_boundary(r = r, fieldlines=True)#, filename='2nd_ae_config_nfp_{}_r_{}_omn_{}_omt_{}_fieldlines.png'.format(nfp, r, omn, omt))
 
 

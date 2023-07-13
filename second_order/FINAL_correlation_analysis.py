@@ -370,7 +370,7 @@ for idx_plot, nfp in enumerate(nfp_arr):
 
     ############ plot the whole thing #####################
 
-    levels = np.linspace(-28.0, 28.0, 300)
+    levels = np.linspace(-55.0, 55.0, 300)
     delta_plot = ax.contourf(a_mesh, b_mesh, delta_ae/r, levels = levels, cmap = mpl.colormaps['jet'], extend = 'both')
 
     ax.set_title(r'$\delta\hat{A}/r \quad r = $' + ' {}'.format(r), fontsize = 24)
@@ -558,7 +558,7 @@ for idx_plot, nfp in enumerate(nfp_arr):
 
 
     max_num_configs = len(idx_nonan_delta_ae)
-    cap = 45
+    cap = 50
 
     idx_nonan_delta_ae = idx_nonan_delta_ae[np.random.choice(idx_nonan_delta_ae.shape[0], cap, replace=False)]
 
@@ -614,7 +614,25 @@ for idx_plot, nfp in enumerate(nfp_arr):
         t_tot = [total_tria_0_arr[idx], total_tria_middle_arr[idx]]
         elon = [elong_0_arr[idx], elong_middle_arr[idx]]
 
+        if t_nae[0] < -20:
+            print("QA t_nae_0 < -20 for:")
+            print(nfp)
+            print(idx)
+            print(t_nae)
 
+        if t_nae[0] > 30:
+            print("QA t_nae_0 > 30 for:")
+            print(nfp)
+            print(idx)
+            print(t_nae)
+
+        if delta_ae[idx] < -34:
+            print("QA delta_ae < -38 for:")
+            print(nfp)
+            print(idx)
+            print(delta_ae[idx])
+
+        
         helicity  = stel.iotaN - stel.iota
 
         # index of maximum value on elon
@@ -662,13 +680,13 @@ for idx_plot, nfp in enumerate(nfp_arr):
     if nfp == 3:
 
         # delta_ae[delta_ae > 0] = np.nan
-        delta_ae[a_mesh < 0.15] = np.nan
+        delta_ae[a_mesh < 0.125] = np.nan
 
 
     elif nfp == 4:
 
         # delta_ae[delta_ae > 0] = np.nan
-        delta_ae[a_mesh < 0.075] = np.nan
+        delta_ae[a_mesh < 0.070] = np.nan
 
     elif nfp == 2:
 
@@ -746,6 +764,24 @@ for idx_plot, nfp in enumerate(nfp_arr):
         t_geo = [geo_tria_0_arr[idx], geo_tria_middle_arr[idx]]
         t_tot = [total_tria_0_arr[idx], total_tria_middle_arr[idx]]
         elon = [elong_0_arr[idx], elong_middle_arr[idx]]
+
+        if t_nae[0] < -15:
+            print("QH t_nae_0 < -15 for:")
+            print(nfp)
+            print(idx)
+            print(t_nae)
+
+        if t_nae[0] > 10:
+            print("QH t_nae_0 > 10 for:")
+            print(nfp)
+            print(idx)
+            print(t_nae)
+
+        if delta_ae[idx] < -34:
+            print("QH delta_ae < -34 for:")
+            print(nfp)
+            print(idx)
+            print(delta_ae[idx])
         
 
         helicity  = stel.iotaN - stel.iota
@@ -804,16 +840,16 @@ df_qh = pd.concat(df_qh_list, ignore_index=True)
 fig = plt.figure(figsize=(22/1.5, 11/1.5))
 grid = gridspec.GridSpec(2, 4, wspace=0.3, hspace = 0.4, height_ratios=[1, 1], width_ratios=[1, 1, 1, 1])
 
-size_marker = 8
+size_marker = 10
 
 columns=["a", "b", "helicity", "axis_length", "eta", "iota", "iotaN", "delB20", "G0", "|G0/iotaN|", \
         "nae_tria_0", "nae_tria_middle", "geo_tria_0", "geo_tria_middle", "total_tria_0", "total_tria_middle", \
             "elon_0", "elon_middle", "max_elon", "B2c", "r_crit", "delta_ae"]
 
 
-columns_first_graph_qa = ["eta", "iotaN", "G0", "|G0/iotaN|", "B2c", "delB20", "r_crit", "elon_0"]
+columns_first_graph_qa = ["eta", "iota", "G0", "|G0/iotaN|", "B2c", "delB20", "r_crit", "elon_0"]
 
-columns_first_graph_qa_latex = [r'$\eta$', r'$\iota_{\rm N}$', r'$G_0$', r'$|G_0/\iota_{\rm N}|$', r'$B_{2c}$', r'$\Delta B_{20}$', r'$r_{\rm crit.}$', r'$\kappa_{\phi = 0}$']
+columns_first_graph_qa_latex = [r'$\bar{\eta}$', r'$\iota_{0}$', r'$G_0$', r'$|G_0/\bar{\iota}|$', r'$B_{2c}$', r'$\Delta B_{20}$', r'$r_{\rm crit.}$', r'$\kappa_{\phi = 0}^{\rm nae}$']
 
 for num, x_data in enumerate(columns_first_graph_qa):
 
@@ -857,14 +893,15 @@ plt.show()
 ############################################################################
 
 
+size_marker = 8
 
 fig = plt.figure(figsize=(22/1.5, 11/1.5))
 grid = gridspec.GridSpec(2, 4, wspace=0.3, hspace = 0.4, height_ratios=[1, 1], width_ratios=[1, 1, 1, 1])
 
 
-columns_second_graph_qh = ["eta", "iotaN", "G0", "|G0/iotaN|", "B2c", "delB20", "r_crit", "elon_middle"]
+columns_second_graph_qh = ["eta", "iota", "G0", "|G0/iotaN|", "B2c", "delB20", "r_crit", "elon_middle"]
 
-columns_second_graph_qh_latex = [r'$\eta$', r'$\iota_{\rm N}$', r'$G_0$', r'$|G_0/\iota_{\rm N}|$', r'$B_{2c}$', r'$\Delta B_{20}$', r'$r_{\rm crit.}$', r'$\kappa_{\phi = \pi / N_{\rm fp}}$']
+columns_second_graph_qh_latex = [r'$\bar{\eta}$', r'$\iota_{0}$', r'$G_0$', r'$|G_0/\bar{\iota}|$', r'$B_{2c}$', r'$\Delta B_{20}$', r'$r_{\rm crit.}$', r'$\kappa_{\phi = \pi / N_{\rm fp}}^{\rm nae}$']
 
 
 
@@ -946,7 +983,7 @@ ax3.scatter(df_qh["nae_tria_0"].to_numpy()[cap:2*cap], df_qh["delta_ae"].to_nump
 ax3.scatter(df_qh["nae_tria_0"].to_numpy()[2*cap:], df_qh["delta_ae"].to_numpy()[2*cap:], s = size_marker, c = "red", marker = 'o', label = "QH " + r'$N_{\rm fp} = 4$')
 
 ax3.set_ylabel(r"$\delta \hat{A}/r$", fontsize = 24)
-ax3.set_xlabel(r"$\delta_{\phi = 0}$", fontsize = 24)
+ax3.set_xlabel(r"$\delta_{\phi = 0}^{\rm nae}$", fontsize = 24)
 
 # ax3.legend(ncol = 1, markerscale=3., fontsize = 20)
 
@@ -958,7 +995,7 @@ ax4.scatter(df_qh["nae_tria_middle"].to_numpy()[2*cap:], df_qh["delta_ae"].to_nu
 
 # ax4.set_ylabel(r"$\delta \hat{A}/r$")
 
-ax4.set_xlabel(r"$\delta_{\phi = \pi / N_{\rm fp}}$", fontsize = 24)
+ax4.set_xlabel(r"$\delta_{\phi = \pi / N_{\rm fp}}^{\rm nae}$", fontsize = 24)
 
 ax4.legend(ncol = 3, markerscale=3., fontsize = 20, loc = "upper center", bbox_to_anchor=(-0.23, 1.2))
 
@@ -994,7 +1031,8 @@ cbar.ax.locator_params(nbins=5)
         # num_ticks = 5  # Set the desired number of ticks
         # cbar.locator = ticker.MaxNLocator(nbins = num_ticks)  # Set the locator
         # cbar.update_ticks()  # Update the ticks on the color bar
-cbar.ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f')) 
+# cbar.ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f')) 
+cbar.ax.ticklabel_format(style='sci', scilimits=(-2,-2), axis='both')
 
 ax1.set_ylabel(r"$B_{2c}$", fontsize = 24)
 
@@ -1041,7 +1079,9 @@ cbar.ax.locator_params(nbins=5)
         # num_ticks = 5  # Set the desired number of ticks
         # cbar.locator = ticker.MaxNLocator(nbins = num_ticks)  # Set the locator
         # cbar.update_ticks()  # Update the ticks on the color bar
-cbar.ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f')) 
+# cbar.ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f')) 
+# add scientific notation to color bar
+cbar.ax.ticklabel_format(style='sci', scilimits=(-2,-2), axis='both')
 
 ax1.set_ylabel(r"$B_{2c}$", fontsize = 24)
 

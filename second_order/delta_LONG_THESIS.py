@@ -189,8 +189,8 @@ for nfp in nfp_arr:
     delta_ae_r_0001 = (ae_second_arr_r_0001/ae_first_arr_r_0001 - 1)#/r
     delta_ae_r_0001[rcrit_arr < r] = np.nan
 
-    delta_ae_r_0001[delta_ae_r_0001 < -0.6] = np.nan
-    delta_ae_r_0001[delta_ae_r_0001 > 0.6] = np.nan
+    delta_ae_r_0001[delta_ae_r_0001 < -0.65] = np.nan
+    delta_ae_r_0001[delta_ae_r_0001 > 0.65] = np.nan
 
 
     r = 0.001
@@ -212,8 +212,8 @@ for nfp in nfp_arr:
     delta_ae_r_001 = (ae_second_arr_r_001/ae_first_arr_r_001 - 1)#/r
     delta_ae_r_001[rcrit_arr < r] = np.nan
 
-    delta_ae_r_001[delta_ae_r_001 < -0.6] = np.nan
-    delta_ae_r_001[delta_ae_r_001 > 0.6] = np.nan
+    delta_ae_r_001[delta_ae_r_001 < -0.65] = np.nan
+    delta_ae_r_001[delta_ae_r_001 > 0.65] = np.nan
 
     r = 0.01
     ae_first_arr_r_01 = np.load('ae_shapes_2nd/ae_first_arr_N_{}_nfp_{}_r_{}_omn_{}_omt_{}_mp.npy'.format(N, nfp, r, omn, omt))
@@ -234,8 +234,8 @@ for nfp in nfp_arr:
     delta_ae_r_01 = (ae_second_arr_r_01/ae_first_arr_r_01 - 1)#/r
     delta_ae_r_01[rcrit_arr < r] = np.nan
 
-    delta_ae_r_01[delta_ae_r_01 < -0.6] = np.nan
-    delta_ae_r_01[delta_ae_r_01 > 0.6] = np.nan
+    delta_ae_r_01[delta_ae_r_01 < -0.65] = np.nan
+    delta_ae_r_01[delta_ae_r_01 > 0.65] = np.nan
 
     r = 0.02
     ae_first_arr_r_02 = np.load('ae_shapes_2nd/ae_first_arr_N_{}_nfp_{}_r_{}_omn_{}_omt_{}_mp.npy'.format(N, nfp, r, omn, omt))
@@ -256,8 +256,8 @@ for nfp in nfp_arr:
     delta_ae_r_02 = (ae_second_arr_r_02/ae_first_arr_r_02 - 1)#/r
     delta_ae_r_02[rcrit_arr < r] = np.nan
 
-    delta_ae_r_02[delta_ae_r_02 < -0.6] = np.nan
-    delta_ae_r_02[delta_ae_r_02 > 0.6] = np.nan
+    delta_ae_r_02[delta_ae_r_02 < -0.65] = np.nan
+    delta_ae_r_02[delta_ae_r_02 > 0.65] = np.nan
 
 
     #################### plotting r = 0.0001 ####################
@@ -279,7 +279,7 @@ for nfp in nfp_arr:
     # put values of delta_ae_r_0001 to nan, where delta_ae_r_01 is nan
     delta_ae_r_0001[np.isnan(delta_ae_r_01)] = np.nan
 
-    levels = np.linspace(-22, 22, 300)
+    levels = np.linspace(-55, 55, 300)
 
     ax1.contourf(a_mesh, b_mesh, delta_ae_r_0001/r, levels = levels, cmap = mpl.colormaps['jet'], extend = 'both')
     # plt.colorbar()

@@ -38,18 +38,17 @@ def my_ellip_k_e(k, tol=1e-12):
 
             return K, K*(1 - sum_th)
 
-# warming up this function
+# warming up the function, i.e. compiling it
 som = my_ellip_k_e(np.array([0.5]))
 
 def ae_nor_nae(self, r, lam_res, Delta_r, a_r, a_r_dln_n_dr, a_r_dln_T_dr, ax = None, ax2 = None, cax = None, plot = False):
 
     # fast function to calculate ae, everything is normalize according
-    # to "Available energy of trapped electrons in Miller tokamak equilibria" Ralf
-    # this just applies to first order quasisymmetric configutions
-    #  A GUIDE OR WHATEVER NEEDS TO BE ADDED TO KNOW EXACTLY WHAT IS BEING
-    # CALCULATED, EVERYTHING IS NORMALIZED
+    # to "Available energy of trapped electrons in Miller tokamak equilibria" Ralf Mackenbach et al 2023
+    # this just applies to first order quasisymmetric configutions using NAE
 
-    # grabbing parameters from the configuration object (stel)
+
+    # grabbing parameters from the configuration object from pyQsc --->  (self ----> stel)
 
     B0 = self.B0
 
@@ -63,16 +62,19 @@ def ae_nor_nae(self, r, lam_res, Delta_r, a_r, a_r_dln_n_dr, a_r_dln_T_dr, ax = 
 
     eta = self.etabar
 
-    # it is not necessaty to exclude  the boundary values of lambda
-    # but to keep consistent with nnumerical case, it is done here
+
+    # defining limtis of integration for lambda using eq. 3.12 from the thesis
 
     lamb_min = lamb_min = 1/(1 - r*eta)
 
     lamb_max = lamb_max = 1/(1 + r*eta)
 
+    # it is not necessaty to exclude  the boundary values of lambda
+    # but to keep consistent with nnumerical case, it is done here
+
     lam_arr = np.linspace(lamb_min, lamb_max, lam_res)[1:-1]
 
-    # eliptic integrals values
+    # evaluating the elliptical integrals with eta and discretized lambda, from eq. 3.13, 3.14, 3.15, 3.17
 
     ellip_n = ((-1*(1 - (1 + r*eta)*lam_arr))/((1 + r*eta)*lam_arr))
 
@@ -84,15 +86,23 @@ def ae_nor_nae(self, r, lam_res, Delta_r, a_r, a_r_dln_n_dr, a_r_dln_T_dr, ax = 
 
     # calculating tau_nor
 
+    # boozer jacobian eq. 3.8 from the thesis
+
     a = np.abs(G0/iotaN)
+
+    # numerator from equation 3.13
 
     num_tau_nor = 2 * np.sqrt(2) * a * ellip_Pi
 
+    # denominator from equation 3.13
+
     den_tau_nor = (B0 + B0*r*eta) * np.sqrt(-1 * r * eta * lam_arr)
+
+    # calculating tau_nor
 
     tau_nor = num_tau_nor/den_tau_nor
 
-    # calculating w_alpha_nor
+    # calculating w_alpha_nor eq. 3.15 from the thesis
 
     expr1 = 2 * eta * (1 + r*eta) * lam_arr * ellip_E
 
@@ -101,30 +111,38 @@ def ae_nor_nae(self, r, lam_res, Delta_r, a_r, a_r_dln_n_dr, a_r_dln_T_dr, ax = 
     expr3 = 2*r*(eta**2) * ellip_Pi
 
     # Note that we are using d / dr 
+
     num_dJnor_dr = a*np.sqrt(2)*(expr1 + expr2 - expr3)
 
     # here the r B0 term is not included, because it is not necessary
     #den_dJnor_dpsi = r*(-1 + r*eta)* (B0 + B0*r*eta)**2 * np.sqrt(-1 * r * eta * lam_arr) OLD
     den_dJnor_dr = (-1 + r*eta)* B0 * (1 + r*eta)**2 * np.sqrt(-1 * r * eta * lam_arr)
 
+    # the constant 2 is just  constant factor to match some the fully numerical results
+    # given that their normalization is slightly different from the analytical one
+    # since we are dealing with normalization, all this constants are not important
+
     dJnor_dr = 2*num_dJnor_dr/den_dJnor_dr
+
+    # calculating w_alpha_nor eq. 3.15 from the thesis, or w_alpha_nor = 2*(Delta_r*dJnor_dr)/tau_nor
 
     w_alpha_nor = (Delta_r*dJnor_dr)/tau_nor
 
-    # calculting ae with analytical z integral, assuming omnigenous
+    # calculating Ghat eq. A.12 from the thesis
 
     Ghat = tau_nor/L
 
-    #############################
-    # DEFINE: calculate c0 and c1
+    # calculting ae with analytical z integral, assuming omnigenous plasma
+    # from appendix A.2 from the thesis
 
-    #############################
-    # Now with Delta_r 
-
-    # MAYBE HERE I HAVE TO CHANGE TE SIGN OF THE GRADIENTS 
+    # note that a_r it is not the same as a_r eq. A.5 from the thesis, it is the normalized one. 
 
     omn = a_r_dln_n_dr
     omt = a_r_dln_T_dr
+
+    #############################
+    # DEFINE: calculate c0 and c1
+    #############################
     
     c0 = (Delta_r * (a_r_dln_n_dr - 3/2 * a_r_dln_T_dr)) / (a_r*w_alpha_nor)
     c1 = 1.0 - ((Delta_r * a_r_dln_T_dr) / (a_r*w_alpha_nor))
@@ -139,17 +157,25 @@ def ae_nor_nae(self, r, lam_res, Delta_r, a_r, a_r_dln_n_dr, a_r_dln_T_dr, ax = 
     ans[condition2]  = (2 * c0[condition2] - 5 * c1[condition2]) * erf(np.sqrt(c0[condition2]/c1[condition2])) + 2 / (3 *np.sqrt(np.pi)) * ( 4 * c0[condition2] + 15 * c1[condition2] ) * np.sqrt(c0[condition2]/c1[condition2]) * np.exp( - c0[condition2]/c1[condition2] )
     ans[condition3]  = (2 * c0[condition3] - 5 * c1[condition3]) * (1 - erf(np.sqrt(c0[condition3]/c1[condition3]))) - 2 / (3 *np.sqrt(np.pi)) * ( 4 * c0[condition3] + 15 * c1[condition3] ) * np.sqrt(c0[condition3]/c1[condition3]) * np.exp( - c0[condition3]/c1[condition3] )
 
-    ae_per_lam = 3/16*ans*Ghat*w_alpha_nor**2
+    # avaialble energy per lambda, eq. 3.17 from the thesis, without the lambda integral 
+    # the constant 3/16 is just  constant factor to match some the fully numerical results
+    # given that their normalization is slightly different from the analytical one
+    # since we are dealing with normalization, all this constants are not important
+
+    ae_per_lam = 3/16*ans*Ghat*w_alpha_nor**2 
+
+    # total energy in the field line, eq. 3.17 from the thesis, with the lambda integral
+    # using the simpson method
 
     self.ae_total = simpson(ae_per_lam, lam_arr)
 
     # total energy in the field line
 
-    #c_max = np.sqrt()
-
-    #angle = 2*np.arcsin(1/c_max)
+    # this angle definition is just to avoid the singularity at pi/2
 
     angle = np.pi - 1e-15
+
+    # solving integral from eq. 3.16 from the thesis
 
     int_dl_b2_num = -4*np.arctanh(((-1 + r*eta)*np.tan(angle/2))/(np.sqrt(-1 + (r*eta)**2 + 0j)))
     int_dl_b2_den  = (-1 + (r*eta)**2 + 0j)**(3/2)
@@ -162,11 +188,17 @@ def ae_nor_nae(self, r, lam_res, Delta_r, a_r, a_r_dln_n_dr, a_r_dln_T_dr, ax = 
     int_dl_b2 = np.real(int_dl_b2_num/int_dl_b2_den)
 
     #self.Et = (a/(B0*L))*np.pi*int_dl_b2 #(1/B0)*no*T0*\Delta_psi \Delta_alpha
-    # WHY DO I HAVE A PI HERE? IF I TAKE IT OUT I GET THE SAME OTHER CODE LETS TRY
+    # total energy in the field line, eq. 3.16 from the thesis 
+    # 
+    # the normalizations factor are not included since in the final result they cancel out
     self.Et = (a/(B0*L))*int_dl_b2
     # print(self.Et)
 
+    # normalized per volume available energy, eq. 3.17 from the thesis, with the lambda integral
     self.ae_nor_total = self.ae_total/self.Et
+
+
+    # plotting funcitons
 
     if ax is not None:
 
@@ -261,9 +293,6 @@ def ae_nor_nae(self, r, lam_res, Delta_r, a_r, a_r_dln_n_dr, a_r_dln_T_dr, ax = 
 
     # mess I am doing
     return tau_nor, w_alpha_nor, ae_per_lam, self.ae_total, self.ae_nor_total
-
-
-
 
 
 

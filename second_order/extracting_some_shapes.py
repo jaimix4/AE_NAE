@@ -40,11 +40,11 @@ nfp = 3
 a_arr = np.linspace(0.0001, 0.3, N)
 b_arr = np.linspace(-0.06, 0.06, N)
 
-# nfp = 2
+nfp = 2
 
-# # NEVER CHANGE THIS VALUES, AT LEAST FOR NFP = 3
-# a_arr = np.linspace(0.0001, 0.6, N)
-# b_arr = np.linspace(-0.13, 0.13, N)
+# NEVER CHANGE THIS VALUES, AT LEAST FOR NFP = 3
+a_arr = np.linspace(0.0001, 0.6, N)
+b_arr = np.linspace(-0.13, 0.13, N)
 
 # nfp = 4
 

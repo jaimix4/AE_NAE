@@ -247,7 +247,7 @@ r = 0.0001
 # put values of delta_ae_r_0001 to nan, where delta_ae_r_01 is nan
 delta_ae_r_0001[np.isnan(delta_ae_r_01)] = np.nan
 
-levels = np.linspace(-22, 22, 300)
+levels = np.linspace(-50, 50, 300)
 
 ax1.contourf(a_mesh, b_mesh, delta_ae_r_0001/r, levels = levels, cmap = mpl.colormaps['jet'], extend = 'both')
 # plt.colorbar()
